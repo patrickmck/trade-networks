@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>trade-networks.xyz</title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:title" content="">
+  <meta property="og:type" content="">
+  <meta property="og:url" content="">
+  <meta property="og:image" content="">
+
+  <link rel="apple-touch-icon" href="icon.png">
+  <!-- Place favicon.ico in the root directory -->
+
+  <!-- <link rel="stylesheet" href="css/normalize.css"> -->
+  <!-- <link rel="stylesheet" href="css/main.css"> -->
+
+  <style>
+    .app-container {
+        margin-left: 150px;
+        margin-right: 150px;
+        padding: 30px;
+    }
+    .dropdown {
+      min-width: 300px;
+    }
+    .svg-container {
+        text-align: center;
+        padding: 30px;
+    }
+  </style>
+
+  <meta name="theme-color" content="#fafafa">
+</head>
+
+<body class='app-container'>
+
+  <!-- Add your site or application content here -->
+  <div class='headerrow'>
+    <p>Select an option from below</p>
+    <select id='product-input' class='dropdown'>
+      <option value=''>Choose ...</option>
+    </select>
+  </div>
+
+  <br/>
+  
+  <input type='range', id='li-trade-year-input', min='2015', max='2018', step='1'>
+  <div id='li-trade-year-input-display'></div>
+
+  <div id='network-graph' class='svg-container'></div>
+
+
+  <script src='bundle.js'></script>
+  
+</body>
+
+</html>
