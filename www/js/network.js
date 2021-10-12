@@ -18,6 +18,13 @@ $(() => {
     })
     $("#product-input").on("select2:select", event => {
         let product_code = event.params.data.id
+        console.log(`Requesting product code ${product_code}`)
+
+        // Remove previous graph artefacts, if any exist
+        d3.selectAll("circle.netnode").remove()
+        d3.selectAll("text.nodetxt").remove()
+        d3.selectAll("line.netlink").remove()
+        // Fetch new data from the API
         load_graph_data(product_code)
     });
 })
@@ -144,7 +151,7 @@ let mouseover = function(d) {
       .style("stroke", "black")
     d3.selectAll('line.netlink')
       .filter(d => d.id.includes(this.getAttribute('name')))
-      .style('stroke', d => d.source.name==this.getAttribute('name') ? 'hotpink' : 'limegreen')
+      .style('stroke', d => d.source.name==this.getAttribute('name') ? 'red' : 'blue')
 }
 let mousemove = function(d) {
     let legend_offset = (legend.property('open') ? legend_height : 0) + legend_buffer_height

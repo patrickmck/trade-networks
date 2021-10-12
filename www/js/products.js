@@ -1,8 +1,11 @@
 export const products = {
-    10121: "Horses; live, pure-bred breeding animals",
-    10129: "Horses; live, other than pure-bred breeding animals",
-    10130: "Asses",
-    10190: "Mules and hinnies"
+    150910: 'Vegetable oils; olive oil and its fractions, virgin, whether or not refined ...',
+    150990: 'Vegetable oils; olive oil and its fractions, other than virgin ...',
+    160241: 'Meat preparations; of swine, hams and cuts thereof, prepared or preserved ...',
+    160242: 'Meat preparations; of swine, shoulders and cuts thereof, prepared or preserved ...',
+    310260: 'Fertilizers ... nitrogenous, double salts and mixtures of calcium nitrate and ammonium nitrate',
+    310280: 'Fertilizers ... nitrogenous, mixtures of urea and ammonium nitrate in aqueous or ammoniacal solution',
+
 }
 
 /** 
