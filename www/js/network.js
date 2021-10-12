@@ -7,15 +7,26 @@ import { products } from './products'
 // let product_selector = document.getElementById('product-input')
 // Object.keys(products).map((val,ind) => {product_selector.options[ind+1] = new Option(products[val], val)})
 
+const api_url = "https://frklvrq4cj.execute-api.ap-southeast-2.amazonaws.com/testing"
+
 import $ from 'jquery';
 import 'select2';
 import 'select2/dist/css/select2.css'
 
 $(() => {
-    $('.dropdown').select2()
-    Object.keys(products).map(val => {
-        $("#product-input").append(new Option(products[val], val))
+    $('.dropdown').select2({
+        ajax: {
+            url: `${api_url}/menu`,
+            dataType: 'json',
+            processResults: (data) => JSON.parse(data)
+        },
+        debug: true,
+        cache: true,
+        placeholder: 'Choose a trade product ...'
     })
+    // Object.keys(products).map(val => {
+    //     $("#product-input").append(new Option(products[val], val))
+    // })
     $("#product-input").on("select2:select", event => {
         let product_code = event.params.data.id
         console.log(`Requesting product code ${product_code}`)
@@ -48,8 +59,7 @@ let nodescale;
 let linkscale;
 
 function load_graph_data(product_code) {
-    fetch(`https://frklvrq4cj.execute-api.ap-southeast-2.amazonaws.com/testing/product?hs_code=${product_code}`,
-    {method: "GET", cache: 'force-cache'})
+    fetch(`${api_url}/product?hs_code=${product_code}`, {method: "GET", cache: 'force-cache'})
         .then(response => response.json())
         .then(d => {
             console.log(`API returned status ${d.statusCode}`)
@@ -58,7 +68,10 @@ function load_graph_data(product_code) {
             return 200
         })
         .catch(error => {
+            console.log('error:')
             console.log(error)
+            console.log('data:')
+            console.log(data)
             return 404
         })
 }
@@ -182,9 +195,9 @@ let make_node_tooltip_content = node => {
 }
 
 let force_simulation = d3.forceSimulation()
-    .force("charge", d3.forceManyBody().strength(-500))
+    .force("charge", d3.forceManyBody().strength(-100))
     // .force("center", d3.forceCenter().x(300).y(300))
-    .force("collision", d3.forceCollide().radius(d => 1.2*(d.r)))
+    .force("collision", d3.forceCollide().radius(d => 1.4*(d.r)))
     .force("x", d3.forceX().x(d => d.xpos))
     .force("y", d3.forceY().y(d => d.ypos))
     // .size([fig_width, fig_height])
@@ -278,6 +291,7 @@ function update_li_network() {
         }
         return accum
     }, [])
+    // console.log(node_data)
 
     // When updating the start and end points for drawing edge lines, we
     // will need access to the actual objects at the start and end nodes,
@@ -299,15 +313,19 @@ function update_li_network() {
         let target_node = findNode[link.target]
         // console.log(node_data)
         // console.log(findNode)
+        // console.log(link.source)
         // console.log(source_node)
+        // console.log(link.target)
         // console.log(target_node)
-        let show_edge = (source_node.r * target_node.r > 0) & (link.volume[trade_year] >= show_edge_cutoff)
-        accum.push({
+        if ((source_node != undefined) & (target_node != undefined)) {
+            let show_edge = (source_node.r * target_node.r > 0) & (link.volume[trade_year] >= show_edge_cutoff)
+            accum.push({
                 id: `${link.source}-${link.target}`,
                 source: source_node,
                 target: target_node,
                 strength: show_edge ? linkscale(link.volume[trade_year]) : 0
             })
+        }
         return accum
     }, [])
 
@@ -375,6 +393,8 @@ function update_li_network() {
 
     let textSelect = fig.selectAll("text.nodetxt")
         .data(node_data, d => `${d.name}-txt`)
+
+    textSelect
         .join(
             (enter) => {
                 return enter
@@ -396,6 +416,7 @@ function update_li_network() {
         .duration(transition_duration)
         .text(d => d.name)
         .style('font-size', '0.8em')
+        .style('display', d => d.r ? 'block' : 'none')
 
     // Reset the force simulation to take account of the new data
     force_simulation.force('x').initialize(node_data)

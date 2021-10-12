@@ -25,7 +25,7 @@ def lambda_handler(event, context):
         product_code = str(event['product_code'])
         logger.info(f'product code: {product_code}')
         df = s3_download_pickle(product_code)
-        logger.info(df)
+        # logger.info(df)
     except (Exception, ValueError, NameError) as e:
         logger.info('something went wrong')
         logger.info(e)
@@ -43,65 +43,67 @@ def lambda_handler(event, context):
     ##       supply the link-level data
     ##
     top_n = 10
+    links_per_node = 8
     
-    im_top = df.groupby('partner_code')['export_value'].sum().reset_index()
-    im_top = im_top.sort_values('export_value', ascending=False).head(n=top_n)
-    top_importers = im_top['partner_code'].to_list()
+    # Get the top N exporters per year
+    top_exporter_volumes = df.groupby(['year', 'location_code'])['export_value'].sum()\
+        .reset_index().sort_values('export_value', ascending=False)\
+        .groupby('year').head(n=top_n)
+    top_exporters = sorted(top_exporter_volumes['location_code'].unique())
+    # Pivot their total trade volumes per year
+    top_exporter_volumes = top_exporter_volumes.pivot(index='location_code', columns='year', values='export_value')
+    top_exporter_volumes = top_exporter_volumes.fillna(0).to_dict('index')
+    # For each exporter, get their top links per year
+    top_exporter_links = df.loc[df['location_code'].isin(top_exporters)]\
+        .sort_values('export_value', ascending=False)\
+        .groupby(['location_code', 'year']).head(n=links_per_node)
+        
+    # ... repeat for imports
     
-    ex_top = df.groupby('location_code')['export_value'].sum().reset_index()
-    ex_top = ex_top.sort_values('export_value', ascending=False).head(n=top_n)
-    top_exporters = ex_top['location_code'].to_list()
+    top_importer_volumes = df.groupby(['year', 'partner_code'])['export_value'].sum()\
+        .reset_index().sort_values('export_value', ascending=False)\
+        .groupby('year').head(n=top_n)
+    top_importers = sorted(top_importer_volumes['partner_code'].unique())
+    top_importer_volumes = top_importer_volumes.pivot(index='partner_code', columns='year', values='export_value')
+    top_importer_volumes = top_importer_volumes.fillna(0).to_dict('index')
+    
+    top_importer_links = df.loc[df['partner_code'].isin(top_importers)]\
+        .sort_values('export_value', ascending=False)\
+        .groupby(['partner_code', 'year']).head(n=links_per_node)\
+        .rename(columns={'export_value': 'import_value'})
     
     top_countries = sorted(set(top_importers + top_exporters))
     
-    top_trade = df.loc[
-        (df['location_code'].isin(top_exporters)) &
-        (df['partner_code'].isin(top_importers))
-    ].rename(columns={
-        'location_code': 'source',
-        'partner_code': 'target',
-        'export_value': 'volume',
-    }).sort_values('volume', ascending=False)
+    # top_trade = df.loc[
+    #     (df['location_code'].isin(top_exporters)) &
+    #     (df['partner_code'].isin(top_importers))
+    # ].rename(columns={
+    #     'location_code': 'source',
+    #     'partner_code': 'target',
+    #     'export_value': 'volume',
+    # }).sort_values('volume', ascending=False)
     
-    logger.info(top_trade)
-    
-    ##
-    ## Top xxports provides the link-level data (volume per bilateral pair per year)
-    ## while pivoting total volumes per country by year prepares the node-level data
-    ## to be broken down into a dictionary of {year: volume} values.
-    ##
-    
-    top_importer_volumes = df.loc[df['partner_code'].isin(top_importers)]\
-        .groupby(['partner_code', 'year'])['export_value'].sum().reset_index()
-    top_importer_volumes = top_importer_volumes.pivot(index='partner_code', columns='year', values='export_value').to_dict('index')
-    
-    top_exporter_volumes = df.loc[df['location_code'].isin(top_exporters)]\
-        .groupby(['location_code', 'year'])['export_value'].sum().reset_index()
-    top_exporter_volumes = top_exporter_volumes.pivot(index='location_code', columns='year', values='export_value').to_dict('index')
+    # logger.info(top_trade)
     
     ##
     ## Given a country c, return year-by-year volumes per partner country
     ##
     def get_trade_links(country, flowtype):
         if flowtype=='export':
-            flow_data = top_trade.loc[top_trade['source']==country]
-            logger.info('flow data:')
-            logger.info(flow_data)
-            partner_data = flow_data.groupby(['target', 'year'])['volume'].sum().reset_index()
-            partner_data = partner_data.pivot(index='target', columns='year', values='volume')
+            dtmp = top_exporter_links.loc[top_exporter_links['location_code']==country]
+            dtmp = dtmp.pivot(index='partner_code', columns='year', values='export_value')
         elif flowtype=='import':
-            flow_data = top_trade.loc[top_trade['target']==country]
-            partner_data = flow_data.groupby(['source', 'year'])['volume'].sum().reset_index()
-            partner_data = partner_data.pivot(index='source', columns='year', values='volume')
+            dtmp = top_importer_links.loc[top_importer_links['partner_code']==country]
+            dtmp = dtmp.pivot(index='location_code', columns='year', values='import_value')
         else:
             raise('Bad flowtype in get_trade_links')
             
         
-        partner_data = partner_data.fillna(0).astype(int)
+        dtmp = dtmp.fillna(0).astype(int)
     #     print(country)
-    #     print(partner_data)
+    #     print(dtmp)
     #     print()
-        return partner_data.to_dict('index')
+        return dtmp.to_dict('index')
     
     
     ## 
@@ -123,7 +125,7 @@ def lambda_handler(event, context):
         ## Some countries may be both top importers and top exporters, so rather
         ## than type={import, export}, use type=[0,1] where 0 = 'purely imports'
         ##
-        if country in top_importer_volumes.keys():
+        if country in top_importers:
             # Each bilateral link only needs to be included once - because of the
             # way the if-else is structured below, it's easiest to count links at
             # the import node, to catch trade with both 'pure' and 'mixed' nodes
@@ -138,14 +140,16 @@ def lambda_handler(event, context):
                 for partner, volumes in import_links.items()
             ])
             
-            if country in top_exporter_volumes.keys():
+            if country in top_exporters:
                 # Then this country has both inflows and outflows to account for
                 total_volume = {
                     i: v + top_exporter_volumes[country][i]
                     for i,v in top_importer_volumes[country].items()
                 }
+                logger.info(country)
+                logger.info(total_volume)
                 vol_mixture = {
-                    i: round(v / total_volume[i],3)
+                    i: round(v / total_volume[i],3) if total_volume[i] else -1
                     for i,v in top_importer_volumes[country].items()
                 }
                 output_nodes.append({
@@ -186,6 +190,7 @@ def lambda_handler(event, context):
     }
     
     logger.info('completed extraction')
+    logger.info(json.dumps(output_data))
     
     return {
         'statusCode': 200,
