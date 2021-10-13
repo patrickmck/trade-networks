@@ -36,6 +36,8 @@ def lambda_handler(event, context):
         }
         
     
+    df = df.loc[(df['location_code']!='ANS') & (df['partner_code']!='ANS')]
+    
     ##
     ## First calculate the top n importers and exporters, then calculate:
     ##   (a) Their total volumes per year, to supply the node-level data
@@ -146,8 +148,6 @@ def lambda_handler(event, context):
                     i: v + top_exporter_volumes[country][i]
                     for i,v in top_importer_volumes[country].items()
                 }
-                logger.info(country)
-                logger.info(total_volume)
                 vol_mixture = {
                     i: round(v / total_volume[i],3) if total_volume[i] else -1
                     for i,v in top_importer_volumes[country].items()
