@@ -2,7 +2,7 @@ const path = require('path');
 
 module.exports = {
   entry: {
-      bundle: './js/network.js',
+      netgraph: './js/network.js',
   },
   output: {
       path: path.resolve(__dirname, 'dist'),
@@ -14,6 +14,18 @@ module.exports = {
         test: /\.css$/,
         use: ["style-loader", "css-loader"],
       },
+      {
+        test: /\.(png|jpg|gif)$/,
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              outputPath: 'images/',
+              name: '[name][hash].[ext]',
+            },
+          },
+        ],
+      }
     ],
   },
   devServer: {
