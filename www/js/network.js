@@ -2,7 +2,7 @@
  * Dropdown handler
  */
 
-import { product_list } from './products'
+const product_options = require('../public/product_options.json')
 import loading_gif from '../img/loading.gif'
 
 // let product_selector = document.getElementById('product-input')
@@ -26,8 +26,8 @@ $(() => {
         //     dataType: 'json',
         //     processResults: (data) => JSON.parse(data)
         // },
+        data: product_options.results,
         placeholder: 'Choose a trade product ...',
-        data: product_list,
         debug: true,
         cache: true,
     })

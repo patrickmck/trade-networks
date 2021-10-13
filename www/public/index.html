@@ -52,7 +52,7 @@
       </thead>
       <tbody>
       <tr>
-        <td style='padding: 10px'><select id='product-input' class='dropdown'></select></td>
+        <td style='padding: 10px'><select id='product-input' class='dropdown'><option></option></select></td>
         <td style='padding: 10px'>
           <input type='range', id='li-trade-year-input', style='min-width: 200px;', min='2015', max='2019', step='1'>
           <span id='li-trade-year-input-display'></span>
@@ -68,11 +68,11 @@
   
 
   <div id='network-graph' class='svg-container'></div>
-  <script src='netgraph.js'></script>
+  <script src='dist/netgraph.js'></script>
 
   <div id='footer-text'>
     <p id='legend-text' style='display: none'><b>Legend: </b>Dark blue nodes are <i>exporting</i> countries, dark red are <i>importing</i> countries and yellow nodes are evenly split between the two.</p>
-    <p>Trade data sourced from the Harvard Dataverse "Atlas of Economic Complexity" - see <a href='google.com'>Github</a> for the full data citation, as well as source code for the API and network graph.</p>
+    <p>Trade data sourced from the Harvard Dataverse "Atlas of Economic Complexity" - see <a href='https://github.com/patrickmck/trade-networks' target='_blank'>Github</a> for the full data citation, as well as source code for the API and network graph.</p>
   </div>
   
 </body>

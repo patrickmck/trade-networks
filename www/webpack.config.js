@@ -5,7 +5,7 @@ module.exports = {
       netgraph: './js/network.js',
   },
   output: {
-      path: path.resolve(__dirname, 'dist'),
+      path: path.resolve(__dirname, 'public/dist'),
       filename: '[name].js'
   },
   module: {
