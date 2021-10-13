@@ -2,7 +2,8 @@
  * Dropdown handler
  */
 
-import { products } from './products'
+import { product_list } from './products'
+import loading_gif from '../img/loading.gif'
 
 // let product_selector = document.getElementById('product-input')
 // Object.keys(products).map((val,ind) => {product_selector.options[ind+1] = new Option(products[val], val)})
@@ -13,21 +14,40 @@ import $ from 'jquery';
 import 'select2';
 import 'select2/dist/css/select2.css'
 
+d3.select('#network-graph').append('div').attr('class', 'alerts')
+    .append('img').attr('class', 'loading')
+    .attr('src', loading_gif)
+    .style('display', 'none')
+
 $(() => {
     $('.dropdown').select2({
-        ajax: {
-            url: `${api_url}/menu`,
-            dataType: 'json',
-            processResults: (data) => JSON.parse(data)
-        },
+        // ajax: {
+        //     url: `${api_url}/menu`,
+        //     dataType: 'json',
+        //     processResults: (data) => JSON.parse(data)
+        // },
+        placeholder: 'Choose a trade product ...',
+        data: product_list,
         debug: true,
         cache: true,
-        placeholder: 'Choose a trade product ...'
     })
     // Object.keys(products).map(val => {
     //     $("#product-input").append(new Option(products[val], val))
     // })
     $("#product-input").on("select2:select", event => {
+        // Set loading gif
+
+        // Set loading gif
+        d3.selectAll('text.errormsg').remove()
+        d3.selectAll('img.loading').style('transform', `translate(${fig_width/2}px,0px)`).style('display', 'block')
+        // let spinner = document.createElement("img")
+        // spinner.setAttribute("src", "images/loading684aaa437a5a21116ead07027cd0d3b4.gif")
+        // elem.setAttribute("height", "768")
+        // elem.setAttribute("width", "1024")
+        // elem.setAttribute("alt", "Flower")
+        // document.getElementById("network-graph").appendChild(spinner)
+
+        // Set product code to prepare request
         let product_code = event.params.data.id
         console.log(`Requesting product code ${product_code}`)
 
@@ -46,8 +66,8 @@ $(() => {
 
 import * as d3 from 'd3'
 
-const fig_width = 800
-const fig_height = 500
+const fig_width = Math.max(800, 0.9*d3.select("#network-graph").property('scrollWidth'))
+const fig_height = 400
 const legend_height = 100
 const legend_buffer_height = 20
 let transition_duration = 500
@@ -63,11 +83,24 @@ function load_graph_data(product_code) {
         .then(response => response.json())
         .then(d => {
             console.log(`API returned status ${d.statusCode}`)
+            // Assign the returned data
             data = JSON.parse(d.body)
+            // Initialise the scales once only (year-independent)
+            nodescale = bubblescaler(data)
+            linkscale = edgelinescaler(data)
+            // Hide the loading spinner, display the legend
+            d3.selectAll('img.loading').style('display', 'none')
+            d3.select('#legend-text').style('display', 'inline-block')
+            // Initialise the network with the new data
             update_li_network()
             return 200
         })
         .catch(error => {
+            d3.selectAll('img.loading').style('display', 'none')
+            d3.selectAll('div.alerts')
+                .append('text').attr('class', 'errormsg')
+                .text("Sorry, could not find that product!")
+                .style('transform', `translate(${fig_width/2}px, ${fig_height/2}px)`)
             console.log('error:')
             console.log(error)
             console.log('data:')
@@ -82,13 +115,21 @@ function load_graph_data(product_code) {
 let bubble_min_size = 5
 let bubble_max_size = 50
 let bubblescaler = data => d3.scaleLinear()
-    .domain([Math.min(...data.nodes.map(n => n.volume[trade_year])), Math.max(...data.nodes.map(n => n.volume[trade_year]))])
+    .domain([
+        // To highlight changes in volume over the years, need the scale to be from
+        // the minimum to the maximum volume attained by any country _for all years_
+        Math.min(...data.nodes.map(n => Math.min(...Object.values(n.volume)))),
+        Math.max(...data.nodes.map(n => Math.max(...Object.values(n.volume))))
+    ])
     .range([bubble_min_size, bubble_max_size]);
 
 let edgeline_min_size = 0.2
 let edgeline_max_size = 10
 let edgelinescaler = data => d3.scaleLinear()
-    .domain([Math.min(...data.links.map(l => l.volume[trade_year])), Math.max(...data.links.map(l => l.volume[trade_year]))])
+    .domain([
+        Math.min(...data.links.map(l => Math.min(...Object.values(l.volume)))),
+        Math.max(...data.links.map(l => Math.max(...Object.values(l.volume))))
+    ])
     .range([edgeline_min_size, edgeline_max_size]);
 
 // Nodes are assigned a "type" between 0 (importer) and 1 (exporter) so the colour
@@ -100,48 +141,13 @@ let geoScale = d3.geoMercator()
     .center([35,0])
     .translate([fig_width/2, fig_height/2])
 
-
 // Set up base selection and append a blank svg
 let fig = d3.select("#network-graph")
     .append('svg')
     .attr('width', fig_width)
     .attr('height', fig_height)
-    // .attr('display', 'inline-block')
 
-d3.select("#network-graph").append('svg').attr('height', legend_buffer_height).attr('width', fig_width)
-// d3.select("#network-graph").append('text').text('Legend:')
-
-let legend = d3.select("#network-graph")
-    .append('details')
-    .attr('class', 'legend')
-    .attr('width', fig_width)
-    .style('text-align', 'left')
-    // .append('summary').text('Legend:')
-legend.append('summary').text('Legend:')
-
-let legend_content = legend
-    .append('svg')
-    .attr('class', 'legend')
-    .attr('y', fig_height)
-    .attr('width', fig_width)
-    .attr('height', legend_height)
-legend_content.selectAll('circle.legenditem')
-    .data(['exporter', 'mixed', 'importer'])
-    .enter()
-    .append('circle')
-    .attr('class', 'legenditem')
-    .attr('fill', (d,i) => d3.interpolateRdYlBu(1-0.5*(i)))
-    .attr('r', 0.2*legend_height)
-    .attr('cx', (d,i) => 0.25*fig_width*(1+i))
-    .attr('cy', 0.1*fig_height)
-legend_content.selectAll('text.legendtext')
-    .data(['exporter', 'mixed', 'importer'])
-    .enter()
-    .append('text')
-    .text(d => d)
-    .attr('class', 'legendtext')
-    .attr('x', (d,i) => 0.25*fig_width*(1+i))
-    .attr('y', 0.1*fig_height+40)
+d3.select("#network-graph").append('br')
 
 // Set up tooltip div to be populated on mouseover
 let tooltip = d3.select("#network-graph")
@@ -160,6 +166,7 @@ let tooltip = d3.select("#network-graph")
 let mouseover = function(d) {
     tooltip
       .style("opacity", 1)
+      .style('transform', `translate(0px, 0px)`)
     d3.select(this)
       .style("stroke", "black")
     d3.selectAll('line.netlink')
@@ -167,14 +174,14 @@ let mouseover = function(d) {
       .style('stroke', d => d.source.name==this.getAttribute('name') ? 'red' : 'blue')
 }
 let mousemove = function(d) {
-    let legend_offset = (legend.property('open') ? legend_height : 0) + legend_buffer_height
     tooltip
         .html(make_node_tooltip_content(this))
-        .style('transform', `translate(${d3.pointer(d)[0]+10-fig_width/2}px, ${d3.pointer(d)[1]-10-fig_height-legend_offset}px)`)
+        .style('transform', `translate(${d3.pointer(d)[0]+10-fig_width/2}px, ${d3.pointer(d)[1]+15-fig_height}px)`)
 }
 let mouseleave = function(d) {
     tooltip
         .style("opacity", 0)
+        .style('transform', `translate(0px, 0px)`)
     d3.select(this)
         .style("stroke", "none")
     d3.selectAll('line.netlink')
@@ -187,7 +194,7 @@ let make_node_tooltip_content = node => {
     let this_node = data.nodes.find(d => d.name==node.getAttribute('name'))
     let export_volume = Math.round(this_node.volume[trade_year] * this_node.type[trade_year])
     let import_volume = Math.round(this_node.volume[trade_year] * (1-this_node.type[trade_year]))
-    let output_html = `<b>${this_node.name}</b><br/>\
+    let output_html = `<b>${this_node.name_full}</b><br/>\
     Imports: $${import_volume.toLocaleString('en-US')}<br/>\
     Exports: $${export_volume.toLocaleString('en-US')}
     `
@@ -240,9 +247,6 @@ d3.select("#li-trade-year-input").on('input', () => {
 function update_li_network() {
     // console.log(data)
     trade_year = d3.select('#li-trade-year-input').node().value
-
-    nodescale = bubblescaler(data)
-    linkscale = edgelinescaler(data)
 
     /**
     For lines to appear below circles, they have to be drawn first. To avoid
