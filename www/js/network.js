@@ -95,7 +95,7 @@ function load_graph_data(product_code) {
             linkscale = edgelinescaler(data)
             // Hide the loading spinner, display the legend
             d3.selectAll('img.loading').style('display', 'none')
-            d3.select('#legend-text').style('display', 'inline-block')
+            d3.select('#legend-text').style('display', 'block')
             // Initialise the network with the new data
             update_li_network()
             return 200
