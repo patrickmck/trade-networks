@@ -33,21 +33,8 @@ $(() => {
     })
     
     $("#product-input").on("select2:select", event => {
-        // Set loading gif
-
-        // Set loading gif
-        d3.selectAll('text.errormsg').remove()
-        d3.selectAll('img.loading').style('transform', `translate(${fig_width/2}px,0px)`).style('display', 'block')
-        // let spinner = document.createElement("img")
-        // spinner.setAttribute("src", "images/loading684aaa437a5a21116ead07027cd0d3b4.gif")
-        // elem.setAttribute("height", "768")
-        // elem.setAttribute("width", "1024")
-        // elem.setAttribute("alt", "Flower")
-        // document.getElementById("network-graph").appendChild(spinner)
-
         // Set product code to prepare request
         let product_code = event.params.data.id
-        console.log(`Requesting product code ${product_code}`)
 
         // Fetch new data from the API
         load_graph_data(product_code)
@@ -60,7 +47,6 @@ $(() => {
 })
 
 function update_select_example(name) {
-    console.log(name)
     $("#product-input").val(name)
     $("#product-input").trigger('change')
     load_graph_data(name)
@@ -85,6 +71,13 @@ let nodescale;
 let linkscale;
 
 function load_graph_data(product_code) {
+
+    console.log(`Requesting product code ${product_code}`)
+
+    // Set loading gif
+    d3.selectAll('text.errormsg').remove()
+    d3.selectAll('img.loading').style('transform', `translate(${fig_width/2}px,0px)`).style('display', 'block')
+
     // Remove previous graph artefacts, if any exist
     d3.selectAll("circle.netnode").remove()
     d3.selectAll("text.nodetxt").remove()
@@ -330,12 +323,7 @@ function update_li_network() {
     edge_data = data.links.reduce((accum, link) => {
         let source_node = findNode[link.source]
         let target_node = findNode[link.target]
-        // console.log(node_data)
-        // console.log(findNode)
-        // console.log(link.source)
-        // console.log(source_node)
-        // console.log(link.target)
-        // console.log(target_node)
+        
         if ((source_node != undefined) & (target_node != undefined)) {
             let show_edge = (source_node.r * target_node.r > 0) & (link.volume[trade_year] >= show_edge_cutoff)
             accum.push({
