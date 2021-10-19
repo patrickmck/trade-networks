@@ -28,6 +28,14 @@
         text-align: center;
         padding: 30px;
     }
+    body {
+      font-family: sans-serif;
+    }
+    .input-example {
+      color: blue;
+      text-decoration: underline;
+      cursor: pointer;
+    }
   </style>
 
   <meta name="theme-color" content="#fafafa">
@@ -57,6 +65,17 @@
           <input type='range', id='li-trade-year-input', style='min-width: 200px;', min='2015', max='2019', step='1'>
           <span id='li-trade-year-input-display'></span>
         </td>
+      </tr>
+      </tbody>
+    </table>
+
+    <table style='width: 50%; font-size: 0.8em; table-layout: fixed; padding-right: 10px;'>
+      <tr>
+        <td>Examples:</td>
+        <td><span class='input-example' id='eg-110100'>Wheat flour</span></td>
+        <td><span class='input-example' id='eg-270111'>Brown coal</span></td>
+        <td><span class='input-example' id='eg-410320'>Reptile skins</span></td>
+        <td><span class='input-example' id='eg-910129'>Luxury watches</span></td>
       </tr>
       </tbody>
     </table>

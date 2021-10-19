@@ -6,6 +6,7 @@
   "scripts": {
     "build": "webpack --mode production",
     "dev": "webpack serve --mode development",
+    "deploy": "webpack --mode production && aws s3 sync --size-only --delete ./public s3://trade-networks.xyz/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "pmck",

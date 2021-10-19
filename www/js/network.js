@@ -31,9 +31,7 @@ $(() => {
         debug: true,
         cache: true,
     })
-    // Object.keys(products).map(val => {
-    //     $("#product-input").append(new Option(products[val], val))
-    // })
+    
     $("#product-input").on("select2:select", event => {
         // Set loading gif
 
@@ -51,14 +49,22 @@ $(() => {
         let product_code = event.params.data.id
         console.log(`Requesting product code ${product_code}`)
 
-        // Remove previous graph artefacts, if any exist
-        d3.selectAll("circle.netnode").remove()
-        d3.selectAll("text.nodetxt").remove()
-        d3.selectAll("line.netlink").remove()
         // Fetch new data from the API
         load_graph_data(product_code)
-    });
+    })
+
+    $(".input-example").on("click", event => {
+        let example_id = event.target.id.split("eg-")[1]
+        update_select_example(example_id)
+    })
 })
+
+function update_select_example(name) {
+    console.log(name)
+    $("#product-input").val(name)
+    $("#product-input").trigger('change')
+    load_graph_data(name)
+}
 
 /**
  * Network graph drawer
@@ -79,6 +85,12 @@ let nodescale;
 let linkscale;
 
 function load_graph_data(product_code) {
+    // Remove previous graph artefacts, if any exist
+    d3.selectAll("circle.netnode").remove()
+    d3.selectAll("text.nodetxt").remove()
+    d3.selectAll("line.netlink").remove()
+
+    // Retrieve data
     fetch(`${api_url}/product?hs_code=${product_code}`, {method: "GET", cache: 'force-cache'})
         .then(response => response.json())
         .then(d => {
@@ -214,6 +226,9 @@ function updateNetworkSim() {
     d3.selectAll("circle.netnode")
         .attr("cx", d => Math.min(Math.max(d.x, d.r), fig_width - d.r))
         .attr("cy", d => Math.min(Math.max(d.y, d.r), fig_height - d.r))
+    // d3.selectAll("rect.nodebg")
+    //     .attr("x", d => Math.min(Math.max(d.x, d.r), fig_width - d.r))
+    //     .attr("y", d => Math.min(Math.max(d.y, d.r), fig_height - d.r)+10)
     d3.selectAll("text.nodetxt")
         .attr("x", d => Math.min(Math.max(d.x, d.r), fig_width - d.r))
         .attr("y", d => Math.min(Math.max(d.y, d.r), fig_height - d.r)+20)
@@ -333,7 +348,6 @@ function update_li_network() {
         return accum
     }, [])
 
-
     // Perform edge select-join-update before nodes and labels, so that
     // graph lines appear underneath the bubbles and are hidden by them
     
@@ -345,7 +359,7 @@ function update_li_network() {
                     .append('line')
                     .attr('class', 'netlink')
                     .style('stroke', 'black')
-                    .style('stroke-width', 0)
+                    .style('stroke-width', `0px`)
                     .attr("x1", e => e.source.x)
                     .attr("x2", e => e.target.x)
                     .attr("y1", e => e.source.y)
@@ -358,13 +372,13 @@ function update_li_network() {
                 return exit
                     .transition()
                     .duration(transition_duration)
-                    .style('stroke-width', 0)
+                    .style('stroke-width', `0px`)
                     .remove()
             }
         )
         .transition()
         .duration(transition_duration)
-        .style('stroke-width', d => d.strength)
+        .style('stroke-width', d => `${d.strength}px`)
 
 
     let nodeSelect = fig.selectAll("circle.netnode")
@@ -395,10 +409,16 @@ function update_li_network() {
         .duration(transition_duration)
         .attr('r', d => d.r)
 
+    // fig.selectAll("text.nodetxt")
+    //     .data(node_data, d => `${d.name}-txt`)
+    //     .join('text')
+    //         .attr('class', 'nodetxt')
+    //         .call(s => s.each((d,i) => d.bbox = fig.selectAll("text.nodetxt").nodes()[i].getBBox()))
+    
+    // fig.selectAll("text.nodetxt").remove()
+
     let textSelect = fig.selectAll("text.nodetxt")
         .data(node_data, d => `${d.name}-txt`)
-
-    textSelect
         .join(
             (enter) => {
                 return enter
@@ -421,6 +441,31 @@ function update_li_network() {
         .text(d => d.name)
         .style('font-size', '0.8em')
         .style('display', d => d.r ? 'block' : 'none')
+        
+
+    // let textBgSelect = fig.selectAll("rect.nodebg")
+    //     .data(node_data, d => `${d.name}-bg`)
+    //     .join(
+    //         (enter) => {
+    //             return enter
+    //                 .append('rect')
+    //                 .attr('class', 'nodebg')
+    //                 .style('fill', 'black')
+    //         },
+    //         (update) => {
+    //             return update
+    //         },
+    //         (exit) => {
+    //             return exit
+    //                 .transition()
+    //                 .duration(transition_duration)
+    //                 .remove()
+    //         }
+    //     )
+    //     .transition()
+    //     .duration(transition_duration)
+    //     .attr('width', d => {console.log(d); return d.bbox.width})
+    //     .attr('height', d => d.bbox.height)
 
     // Reset the force simulation to take account of the new data
     force_simulation.force('x').initialize(node_data)
